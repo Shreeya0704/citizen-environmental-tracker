@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    container_name: cstr_prometheus
+    volumes:
+      - ./infra/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    networks: [backend]
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.4.6
+    container_name: cstr_grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    depends_on:
+      - prometheus
+    networks: [backend]
+    restart: unless-stopped
+
+networks:
+  backend:
+    external: true
+    name: cstr_backend

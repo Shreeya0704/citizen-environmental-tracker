@@ -1,12 +1,23 @@
 import json
 import os
+import time
 from datetime import datetime
 from typing import List, Optional
 
 import psycopg2
 import psycopg2.extras
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request, Response
 from minio import Minio
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+
+REQ_COUNT = Counter(
+    "submission_api_requests_total",
+    "Total HTTP requests",
+    ["endpoint", "method", "status"],
+)
+REQ_LATENCY = Histogram(
+    "submission_api_request_seconds", "Request latency seconds", ["endpoint", "method"]
+)
 
 # --- MinIO config ---
 BUCKET = os.getenv("S3_BUCKET", "ingestion")
@@ -33,7 +44,28 @@ def _db():
     return psycopg2.connect(DB_URL)
 
 
-app = FastAPI(title="Submission API", version="0.2.0")
+app = FastAPI(title="Submission API", version="0.3.0")
+
+
+@app.middleware("http")
+async def _metrics_middleware(request: Request, call_next):
+    start = time.time()
+    endpoint = request.url.path
+    method = request.method
+    status = "500"
+    try:
+        response = await call_next(request)
+        status = str(response.status_code)
+        return response
+    finally:
+        duration = time.time() - start
+        REQ_LATENCY.labels(endpoint=endpoint, method=method).observe(duration)
+        REQ_COUNT.labels(endpoint=endpoint, method=method, status=status).inc()
+
+
+@app.get("/metrics")
+def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.get("/healthz")
@@ -93,8 +125,10 @@ def latest(n: int = Query(5, ge=1, le=50)):
 def measurements(
     city: Optional[str] = None,
     parameter: Optional[str] = None,
-    start: Optional[str] = Query(None, description="ISO8601 UTC e.g. 2025-10-26T00:00:00Z"),
-    end: Optional[str] = Query(None, description="ISO8601 UTC"),
+    start: Optional[str] = Query(
+        None, description="ISO 8601 UTC, e.g., 2025-10-26T00:00:00Z"
+    ),
+    end: Optional[str] = Query(None, description="ISO 8601 UTC"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ):
