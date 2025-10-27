@@ -8,15 +8,29 @@ services:
       dockerfile: Dockerfile
     env_file: .env
     environment:
-      # Override localhost with service DNS names inside the Compose network
-      S3_ENDPOINT: http://minio:9000
-      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672/
-      # Run every 5 minutes by default
+      S3_ENDPOINT: http://cstr_minio:9000
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@cstr_rabbitmq:5672/
       INTERVAL_SECONDS: 300
     depends_on:
       - minio
       - rabbitmq
       - postgres
+    networks: [backend]
+    restart: unless-stopped
+
+  submission-api:
+    container_name: cstr_submission_api
+    build:
+      context: ./services/submission-api
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      S3_ENDPOINT: http://cstr_minio:9000
+      INGEST_PREFIX: ${INGEST_PREFIX}
+    depends_on:
+      - minio
+    ports:
+      - "8080:8080"
     networks: [backend]
     restart: unless-stopped
 
