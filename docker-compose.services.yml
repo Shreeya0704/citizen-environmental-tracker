@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+  data-ingestor:
+    container_name: cstr_data_ingestor
+    build:
+      context: ./services/data-ingestor
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      # Override localhost with service DNS names inside the Compose network
+      S3_ENDPOINT: http://cstr_minio:9000
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@cstr_rabbitmq:5672/
+      # Run every 5 minutes by default
+      INTERVAL_SECONDS: 300
+    depends_on:
+      - minio
+      - rabbitmq
+      - postgres
+    networks: [backend]
+    restart: unless-stopped
+
+networks:
+  backend:
+    external: true
+    name: cstr_backend

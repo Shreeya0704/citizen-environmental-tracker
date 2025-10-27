@@ -1,0 +1,10 @@
+.venv
+__pycache__/
+*.pyc
+infra/volumes/
+node_modules/
+.git
+.gitignore
+.gitmodules
+.env
+*.log

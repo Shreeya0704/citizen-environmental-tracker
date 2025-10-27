@@ -1,0 +1,13 @@
+# Python & venv
+.venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
+# Local data volumes
+infra/volumes/
+
+# Env files
+.env

@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cstr_postgres
+    env_file: .env
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./infra/volumes/postgres:/var/lib/postgresql/data
+    networks: [backend]
+
+  minio:
+    image: minio/minio
+    container_name: cstr_minio
+    env_file: .env
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Console
+    volumes:
+      - ./infra/volumes/minio:/data
+    networks: [backend]
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: cstr_rabbitmq
+    env_file: .env
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # Mgmt UI
+    volumes:
+      - ./infra/volumes/rabbitmq:/var/lib/rabbitmq
+    networks: [backend]
+
+networks:
+  backend:
+    name: cstr_backend

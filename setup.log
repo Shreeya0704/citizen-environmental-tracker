@@ -1,0 +1,8 @@
+==== Citizen Science Tracker — STEP 1 Setup ====
+Timestamp: 2025-10-27T14:56:14+00:00
+OS: Ubuntu 24.04.3 LTS
+Git: 2.43.0
+Python: 3.12.3
+Pip: 25.3
+JQ: jq-1.7
+VENV: /home/hreeya/projects/citizen-science-tracker/.venv
