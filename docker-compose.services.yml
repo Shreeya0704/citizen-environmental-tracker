@@ -9,8 +9,8 @@ services:
     env_file: .env
     environment:
       # Override localhost with service DNS names inside the Compose network
-      S3_ENDPOINT: http://cstr_minio:9000
-      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@cstr_rabbitmq:5672/
+      S3_ENDPOINT: http://minio:9000
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672/
       # Run every 5 minutes by default
       INTERVAL_SECONDS: 300
     depends_on:

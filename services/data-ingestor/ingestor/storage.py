@@ -17,7 +17,6 @@ def _client():
         secret_key=secret_key,
         secure=secure,
         region=region,
-        bucket_lookup="path",
     )
 
 def put_json(bucket: str, key: str, payload: dict) -> None:
