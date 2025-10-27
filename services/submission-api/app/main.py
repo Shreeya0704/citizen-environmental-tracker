@@ -1,5 +1,5 @@
 import os, json
-from typing import List, Optional
+from typing import List
 from fastapi import FastAPI, HTTPException, Query
 from minio import Minio
 
@@ -20,8 +20,7 @@ app = FastAPI(title="Submission API", version="0.1.0")
 def healthz():
     try:
         c = _client()
-        # Touch the bucket listing to ensure connectivity; ignore contents
-        _ = next(c.list_objects(BUCKET, prefix=PREFIX, recursive=True), None)
+        next(c.list_objects(BUCKET, prefix=PREFIX, recursive=True), None)
         return {"status": "ok"}
     except Exception as e:
         raise HTTPException(500, f"minio_unreachable: {e}")
@@ -34,7 +33,6 @@ def latest(n: int = Query(5, ge=1, le=50)):
     except Exception as e:
         raise HTTPException(500, f"list_failed: {e}")
 
-    # Sort newest first by last_modified
     objs.sort(key=lambda o: o.last_modified, reverse=True)
     items = []
     for o in objs[:n]:
@@ -44,7 +42,6 @@ def latest(n: int = Query(5, ge=1, le=50)):
             data = json.loads(resp.read().decode("utf-8"))
             count = len(data.get("results", []))
         except Exception:
-            # non-fatal; still return object metadata
             pass
         finally:
             try:
