@@ -22,7 +22,6 @@ services:
     container_name: cstr_submission_api
     build:
       context: ./services/submission-api
-      dockerfile: Dockerfile
     env_file: .env
     environment:
       S3_ENDPOINT: http://minio:9000
@@ -39,12 +38,12 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.submission.rule=PathPrefix(`/api`)"
       - "traefik.http.routers.submission.entrypoints=web"
+      - "traefik.http.routers.submission.priority=2"
       - "traefik.http.services.submission.loadbalancer.server.port=8080"
       - "traefik.http.middlewares.submission-strip.stripprefix.prefixes=/api"
-      - "traefik.http.middlewares.submission-strip.stripprefix.forceSlash=false"
       - "traefik.http.middlewares.submission-rl.ratelimit.average=5"
       - "traefik.http.middlewares.submission-rl.ratelimit.burst=10"
-      - "traefik.http.routers.submission.middlewares=submission-strip@docker,submission-rl@docker"
+      - "traefik.http.routers.submission.middlewares=submission-strip@file,submission-rl@file"
 
   validation-worker:
     container_name: cstr_validation_worker
@@ -63,6 +62,20 @@ services:
       - minio
     networks: [backend]
     restart: unless-stopped
+
+  frontend:
+    container_name: cstr_frontend
+    build:
+      context: ./services/frontend
+      dockerfile: Dockerfile
+    networks: [backend]
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.front.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.front.entrypoints=web"
+      - "traefik.http.routers.front.priority=1"
+      - "traefik.http.services.front.loadbalancer.server.port=80"
 
 networks:
   backend:

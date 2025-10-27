@@ -9,6 +9,13 @@ http:
         - submission-rl
       service: submission
 
+    front:
+      rule: PathPrefix(`/`)
+      entryPoints:
+        - web
+      priority: 1
+      service: front
+
   middlewares:
     submission-strip:
       stripPrefix:
@@ -25,3 +32,7 @@ http:
       loadBalancer:
         servers:
           - url: http://cstr_submission_api:8080
+    front:
+      loadBalancer:
+        servers:
+          - url: http://cstr_frontend:80

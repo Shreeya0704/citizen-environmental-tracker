@@ -9,7 +9,6 @@ services:
       - --api.insecure=true
       - --providers.file.filename=/etc/traefik/dynamic.yml
       - --providers.file.watch=true
-      - --providers.docker=false
     ports:
       - "${GATEWAY_PORT:-8090}:80"
       - "${TRAEFIK_DASHBOARD_PORT:-8091}:8080"

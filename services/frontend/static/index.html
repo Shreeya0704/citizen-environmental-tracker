@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Citizen Science Tracker</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="/style.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script defer src="/app.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Citizen Science Tracker</h1>
+    <p class="sub">Recent ingestions & normalized measurements</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>Recent Ingestions</h2>
+      <button id="refresh">Refresh</button>
+      <ul id="ingestions"></ul>
+    </section>
+
+    <section>
+      <h2>Parameter Counts (last 50 rows)</h2>
+      <canvas id="paramChart"></canvas>
+    </section>
+  </main>
+
+  <footer>
+    <small>Served via Traefik → Nginx · API via /api/*</small>
+  </footer>
+</body>
+</html>

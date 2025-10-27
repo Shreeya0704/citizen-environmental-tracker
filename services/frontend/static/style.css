@@ -1,0 +1,12 @@
+* { box-sizing: border-box; }
+body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; color: #111; }
+header { padding: 16px 20px; background: #f5f7fb; border-bottom: 1px solid #e5e7eb; }
+h1 { margin: 0 0 6px 0; font-size: 1.4rem; }
+.sub { color: #444; margin: 0; }
+main { display: grid; gap: 24px; padding: 20px; max-width: 1000px; margin: 0 auto; }
+section { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; }
+button { padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; cursor: pointer; }
+button:hover { background: #f8fafc; }
+#ingestions { list-style: none; padding: 0; margin: 8px 0 0 0; }
+#ingestions li { padding: 6px 0; border-bottom: 1px dashed #eee; }
+footer { text-align: center; padding: 12px; color: #666; border-top: 1px solid #e5e7eb; }
