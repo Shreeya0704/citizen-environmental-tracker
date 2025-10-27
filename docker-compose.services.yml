@@ -35,6 +35,16 @@ services:
       - "${SUBMISSION_API_PORT:-8088}:8080"
     networks: [backend]
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.submission.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.submission.entrypoints=web"
+      - "traefik.http.services.submission.loadbalancer.server.port=8080"
+      - "traefik.http.middlewares.submission-strip.stripprefix.prefixes=/api"
+      - "traefik.http.middlewares.submission-strip.stripprefix.forceSlash=false"
+      - "traefik.http.middlewares.submission-rl.ratelimit.average=5"
+      - "traefik.http.middlewares.submission-rl.ratelimit.burst=10"
+      - "traefik.http.routers.submission.middlewares=submission-strip@docker,submission-rl@docker"
 
   validation-worker:
     container_name: cstr_validation_worker

@@ -1,0 +1,27 @@
+http:
+  routers:
+    submission:
+      rule: PathPrefix(`/api`)
+      entryPoints:
+        - web
+      middlewares:
+        - submission-strip
+        - submission-rl
+      service: submission
+
+  middlewares:
+    submission-strip:
+      stripPrefix:
+        prefixes:
+          - /api
+        forceSlash: false
+    submission-rl:
+      rateLimit:
+        average: 5
+        burst: 10
+
+  services:
+    submission:
+      loadBalancer:
+        servers:
+          - url: http://cstr_submission_api:8080
