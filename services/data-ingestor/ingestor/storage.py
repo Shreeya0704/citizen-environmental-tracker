@@ -3,13 +3,22 @@ import json
 import os
 from minio import Minio
 
+
 def _client():
     endpoint = os.getenv("S3_ENDPOINT", "http://localhost:9000")
     access_key = os.getenv("MINIO_ROOT_USER", "minioadmin")
     secret_key = os.getenv("MINIO_ROOT_PASSWORD", "minioadmin")
+    region = os.getenv("S3_REGION")
     secure = endpoint.startswith("https://")
     host = endpoint.replace("http://", "").replace("https://", "")
-    return Minio(host, access_key=access_key, secret_key=secret_key, secure=secure)
+    return Minio(
+        host,
+        access_key=access_key,
+        secret_key=secret_key,
+        secure=secure,
+        region=region,
+        bucket_lookup="path",
+    )
 
 def put_json(bucket: str, key: str, payload: dict) -> None:
     data = json.dumps(payload, separators=(",", ":")).encode("utf-8")
