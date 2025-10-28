@@ -9,7 +9,7 @@ from minio import Minio
 from psycopg2.extras import execute_values
 
 
-def s3_client() -> Minio:
+def s3_client():
     endpoint = os.getenv("S3_ENDPOINT", "http://minio:9000")
     access = os.getenv("MINIO_ROOT_USER", "minioadmin")
     secret = os.getenv("MINIO_ROOT_PASSWORD", "minioadmin")
@@ -25,10 +25,18 @@ def db_conn():
     return psycopg2.connect(url)
 
 
-def normalize(openaq_json, s3_key):
+def normalize_openaq(payload, s3_key):
     rows = []
-    for idx, item in enumerate(openaq_json.get("results", [])):
+    for idx, item in enumerate(payload.get("results", [])):
+        location = item.get("location")
+        city = item.get("city")
+        country = item.get("country")
+        parameter = item.get("parameter")
+        value = item.get("value")
+        unit = item.get("unit")
         coords = item.get("coordinates") or {}
+        lat = coords.get("latitude")
+        lon = coords.get("longitude")
         date_info = item.get("date") or {}
         utc_str = date_info.get("utc")
         ts = None
@@ -42,29 +50,79 @@ def normalize(openaq_json, s3_key):
                 "openaq",
                 s3_key,
                 idx,
-                item.get("location"),
-                item.get("city"),
-                item.get("country"),
-                item.get("parameter"),
-                item.get("value"),
-                item.get("unit"),
-                coords.get("latitude"),
-                coords.get("longitude"),
+                location,
+                city,
+                country,
+                parameter,
+                value,
+                unit,
+                lat,
+                lon,
                 ts,
             )
         )
     return rows
 
 
-def handle_message(channel, method, properties, body):
+def normalize_inat(payload, s3_key):
+    rows = []
+    for idx, item in enumerate(payload.get("results", [])):
+        taxon = item.get("taxon") or {}
+        taxon_id = taxon.get("id")
+        scientific_name = taxon.get("name")
+        common_name = taxon.get("preferred_common_name") or item.get("species_guess")
+
+        lat = lon = None
+        geojson = item.get("geojson")
+        if isinstance(geojson, dict):
+            coords = geojson.get("coordinates")
+            if isinstance(coords, (list, tuple)) and len(coords) == 2:
+                lon, lat = coords[0], coords[1]
+        if lat is None or lon is None:
+            loc = item.get("location") or ""
+            if "," in loc:
+                try:
+                    lat, lon = [float(x.strip()) for x in loc.split(",", 1)]
+                except Exception:
+                    lat = lon = None
+
+        observed = item.get("time_observed_at") or item.get("observed_on") or item.get("created_at")
+        ts = None
+        if observed:
+            try:
+                ts = datetime.fromisoformat(observed.replace("Z", "+00:00"))
+            except Exception:
+                ts = None
+
+        place_city = item.get("place_guess")
+        place_country = item.get("place_country_name")
+        quality = item.get("quality_grade")
+
+        rows.append(
+            (
+                "inaturalist",
+                s3_key,
+                idx,
+                taxon_id,
+                scientific_name,
+                common_name,
+                lat,
+                lon,
+                ts,
+                place_city,
+                place_country,
+                quality,
+            )
+        )
+    return rows
+
+
+def handle_message(ch, method, props, body):
     try:
         message = json.loads(body.decode("utf-8"))
-        if message.get("source", "openaq") != "openaq":
-            channel.basic_ack(delivery_tag=method.delivery_tag)
-            return
-
         bucket = message["s3_bucket"]
         s3_key = message["s3_key"]
+        source = message.get("source", "openaq")
 
         client = s3_client()
         response = client.get_object(bucket, s3_key)
@@ -75,29 +133,41 @@ def handle_message(channel, method, properties, body):
         except Exception:
             pass
 
-        rows = normalize(payload, s3_key)
-        if rows:
-            with db_conn() as conn, conn.cursor() as cur:
-                execute_values(
-                    cur,
-                    """
-                    INSERT INTO measurements (
-                        source, s3_key, row_index, location, city, country,
-                        parameter, value, unit, latitude, longitude, time_utc
+        with db_conn() as conn, conn.cursor() as cur:
+            if source == "openaq":
+                rows = normalize_openaq(payload, s3_key)
+                if rows:
+                    execute_values(
+                        cur,
+                        """
+                        INSERT INTO measurements
+                            (source, s3_key, row_index, location, city, country, parameter, value, unit, latitude, longitude, time_utc)
+                        VALUES %s
+                        ON CONFLICT (s3_key, row_index) DO NOTHING
+                        """,
+                        rows,
                     )
-                    VALUES %s
-                    ON CONFLICT (s3_key, row_index) DO NOTHING
-                    """,
-                    rows,
-                )
-        channel.basic_ack(delivery_tag=method.delivery_tag)
+            elif source == "inaturalist":
+                rows = normalize_inat(payload, s3_key)
+                if rows:
+                    execute_values(
+                        cur,
+                        """
+                        INSERT INTO observations
+                            (source, s3_key, row_index, taxon_id, scientific_name, common_name, latitude, longitude, observed_at, place_city, place_country, quality_grade)
+                        VALUES %s
+                        ON CONFLICT (s3_key, row_index) DO NOTHING
+                        """,
+                        rows,
+                    )
+        ch.basic_ack(delivery_tag=method.delivery_tag)
     except Exception as exc:  # noqa: BLE001
         print(f"worker_error: {exc}", file=sys.stderr)
-        channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
 
 def main():
-    url = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
+    url = os.getenv("RABBITMQ_URL", "amqp://guest:guest@cstr_rabbitmq:5672/")
     queue = os.getenv("INGEST_QUEUE", "ingestion_raw")
 
     params = pika.URLParameters(url)

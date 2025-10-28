@@ -24,6 +24,10 @@ PREFIX = os.getenv("INGEST_PREFIX", "openaq/raw/")
 ENDPOINT = os.getenv("S3_ENDPOINT", "http://minio:9000")
 ACCESS_KEY = os.getenv("MINIO_ROOT_USER", "minioadmin")
 SECRET_KEY = os.getenv("MINIO_ROOT_PASSWORD", "minioadmin")
+DB_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://cstracker:cstracker@cstr_postgres:5432/cstracker",
+)
 
 
 def _s3() -> Minio:
@@ -32,17 +36,11 @@ def _s3() -> Minio:
     return Minio(host, access_key=ACCESS_KEY, secret_key=SECRET_KEY, secure=secure)
 
 
-DB_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://cstracker:cstracker@cstr_postgres:5432/cstracker",
-)
-
-
 def _db():
     return psycopg2.connect(DB_URL)
 
 
-app = FastAPI(title="Submission API", version="0.4.0")
+app = FastAPI(title="Submission API", version="0.5.0")
 
 
 @app.middleware("http")
@@ -69,8 +67,7 @@ def metrics():
 @app.get("/healthz")
 def healthz():
     try:
-        client = _s3()
-        next(client.list_objects(BUCKET, prefix=PREFIX, recursive=True), None)
+        next(_s3().list_objects(BUCKET, prefix=PREFIX, recursive=True), None)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"minio_unreachable: {exc}") from exc
 
@@ -164,53 +161,40 @@ def measurements(
     """
     args.extend([limit, offset])
 
-    try:
-        with _db() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute(sql, args)
-            rows = cur.fetchall()
-            return {"items": rows, "count": len(rows)}
-    except HTTPException:
-        raise
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"query_failed: {exc}") from exc
+    with _db() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(sql, args)
+        rows = cur.fetchall()
+        return {"items": rows, "count": len(rows)}
 
 
-@app.get("/stats/top-cities")
-def stats_top_cities(
-    parameter: str = Query(..., description="e.g., pm25"),
-    limit: int = Query(10, ge=1, le=100),
+@app.get("/observations")
+def observations(
+    taxon_id: Optional[int] = None,
+    country: Optional[str] = None,
+    days: int = Query(7, ge=1, le=365),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
 ):
-    sql = """
-      SELECT city, country, parameter, unit, value, time_utc
-      FROM mv_city_param_latest
-      WHERE parameter = %s AND value IS NOT NULL
-      ORDER BY value DESC NULLS LAST
-      LIMIT %s
+    clauses = ["observed_at >= (now() AT TIME ZONE 'UTC') - (INTERVAL '1 day' * %s)"]
+    args: List[object] = [days]
+    if taxon_id is not None:
+        clauses.append("taxon_id = %s")
+        args.append(taxon_id)
+    if country:
+        clauses.append("place_country = %s")
+        args.append(country)
+    where = "WHERE " + " AND ".join(clauses)
+    sql = f"""
+        SELECT id, taxon_id, scientific_name, common_name, latitude, longitude,
+               place_city, place_country, quality_grade, observed_at
+        FROM observations
+        {where}
+        ORDER BY observed_at DESC NULLS LAST
+        LIMIT %s OFFSET %s
     """
-    try:
-        with _db() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute(sql, [parameter, limit])
-            rows = cur.fetchall()
-            return {"items": rows, "count": len(rows)}
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"stats_top_cities_failed: {exc}") from exc
+    args.extend([limit, offset])
 
-
-@app.get("/stats/param-trend")
-def stats_param_trend(
-    parameter: str = Query(..., description="e.g., pm25"),
-    days: int = Query(7, ge=1, le=90),
-):
-    sql = """
-      SELECT day, parameter, count
-      FROM mv_param_daily_counts
-      WHERE parameter = %s AND day >= (now() AT TIME ZONE 'UTC') - (INTERVAL '1 day' * %s)
-      ORDER BY day ASC
-    """
-    try:
-        with _db() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute(sql, [parameter, days])
-            rows = cur.fetchall()
-            return {"items": rows, "count": len(rows)}
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(500, f"stats_param_trend_failed: {exc}") from exc
+    with _db() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(sql, args)
+        rows = cur.fetchall()
+        return {"items": rows, "count": len(rows)}
