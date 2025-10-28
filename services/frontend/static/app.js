@@ -19,23 +19,27 @@ async function loadIngestions() {
   }
 }
 
-async function loadChart() {
+async function loadDailyTrend() {
   try {
-    const data = await fetchJSON('/api/measurements?limit=50');
-    const counts = {};
-    (data.items || []).forEach(r => {
-      const p = r.parameter || 'unknown';
-      counts[p] = (counts[p] || 0) + 1;
-    });
-    const labels = Object.keys(counts);
-    const values = labels.map(l => counts[l]);
-
+    const param = 'pm25';
+    const days = 7;
+    const data = await fetchJSON(`/api/stats/param-trend?parameter=${encodeURIComponent(param)}&days=${days}`);
+    const labels = (data.items || []).map(r => new Date(r.day).toISOString().slice(0, 10));
+    const values = (data.items || []).map(r => r.count || 0);
     const ctx = document.getElementById('paramChart');
     if (window._chart) window._chart.destroy();
     window._chart = new Chart(ctx, {
-      type: 'bar',
-      data: { labels, datasets: [{ label: 'Rows', data: values }] },
-      options: { responsive: true, plugins: { legend: { display: false } } }
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{ label: `Daily count (${param})`, data: values }],
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true },
+        },
+      },
     });
   } catch (e) {
     console.error(e);
@@ -44,7 +48,9 @@ async function loadChart() {
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('refresh').addEventListener('click', () => {
-    loadIngestions(); loadChart();
+    loadIngestions();
+    loadDailyTrend();
   });
-  loadIngestions(); loadChart();
+  loadIngestions();
+  loadDailyTrend();
 });

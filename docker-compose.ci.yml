@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  sonar-db:
+    image: postgres:16-alpine
+    container_name: cstr_sonar_db
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar
+      POSTGRES_DB: sonarqube
+    volumes:
+      - ./infra/volumes/sonardb:/var/lib/postgresql/data
+    networks: [backend]
+    restart: unless-stopped
+
+  sonarqube:
+    image: sonarqube:10.6-community
+    container_name: cstr_sonarqube
+    depends_on: [sonar-db]
+    environment:
+      SONARQUBE_JDBC_URL: jdbc:postgresql://cstr_sonar_db:5432/sonarqube
+      SONARQUBE_JDBC_USERNAME: sonar
+      SONARQUBE_JDBC_PASSWORD: sonar
+    ports:
+      - "${SONAR_PORT:-9002}:9000"
+    volumes:
+      - ./infra/volumes/sonar:/opt/sonarqube/data
+    networks: [backend]
+    restart: unless-stopped
+
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: cstr_jenkins
+    user: root
+    environment:
+      DOCKER_HOST: unix:///var/run/docker.sock
+    ports:
+      - "${JENKINS_PORT:-8092}:8080"
+    volumes:
+      - ./infra/volumes/jenkins:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/workspace
+    networks: [backend]
+    restart: unless-stopped
+
+networks:
+  backend:
+    external: true
+    name: cstr_backend

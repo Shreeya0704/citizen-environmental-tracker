@@ -43,7 +43,7 @@ services:
       - "traefik.http.middlewares.submission-strip.stripprefix.prefixes=/api"
       - "traefik.http.middlewares.submission-rl.ratelimit.average=5"
       - "traefik.http.middlewares.submission-rl.ratelimit.burst=10"
-      - "traefik.http.routers.submission.middlewares=submission-strip@file,submission-rl@file"
+      - "traefik.http.routers.submission.middlewares=submission-strip@docker,submission-rl@docker"
 
   validation-worker:
     container_name: cstr_validation_worker
@@ -76,6 +76,20 @@ services:
       - "traefik.http.routers.front.entrypoints=web"
       - "traefik.http.routers.front.priority=1"
       - "traefik.http.services.front.loadbalancer.server.port=80"
+
+  db-maint:
+    container_name: cstr_db_maint
+    build:
+      context: ./services/db-maint
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REFRESH_INTERVAL_SECONDS: 86400
+    depends_on:
+      - postgres
+    networks: [backend]
+    restart: unless-stopped
 
 networks:
   backend:
