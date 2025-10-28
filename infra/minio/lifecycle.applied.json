@@ -1,0 +1,1 @@
+{"Rules":[{"Expiration":{"Days":14},"ID":"expire-openaq-raw-14d","Filter":{"Prefix":"openaq/raw/"},"Status":"Enabled"},{"Expiration":{"Days":14},"ID":"expire-inat-raw-14d","Filter":{"Prefix":"inat/raw/"},"Status":"Enabled"}]}

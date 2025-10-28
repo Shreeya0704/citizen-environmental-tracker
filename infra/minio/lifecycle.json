@@ -1,0 +1,16 @@
+{
+  "Rules": [
+    {
+      "ID": "expire-openaq-raw-14d",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "openaq/raw/" },
+      "Expiration": { "Days": 14 }
+    },
+    {
+      "ID": "expire-inat-raw-14d",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "inat/raw/" },
+      "Expiration": { "Days": 14 }
+    }
+  ]
+}
