@@ -1,0 +1,42 @@
+groups:
+- name: citizen_api
+  interval: 15s
+  rules:
+  - alert: SubmissionAPIDown
+    expr: up{job="submission-api"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "submission-api is down"
+      description: "Target up==0 for > 1m"
+
+  - alert: HighAPIErrorRate
+    expr: (sum by () (rate(submission_api_requests_total{status=~"5.."}[5m])) /
+           sum by () (rate(submission_api_requests_total[5m]))) > 0.05
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High 5xx rate (>5% over 5m)"
+      description: "Investigate recent errors"
+
+  - alert: HighAPIP95Latency
+    expr: histogram_quantile(0.95, sum by (le) (rate(submission_api_request_seconds_bucket[5m]))) > 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High p95 latency (>1s over 5m)"
+      description: "Latency is elevated"
+
+- name: demo
+  rules:
+  - alert: AlwaysFiring_Step19
+    expr: vector(1)
+    for: 0m
+    labels:
+      severity: debug
+    annotations:
+      summary: "Demo alert to verify Alertmanager wiring"
+      description: "This is auto-silenced by the setup script."
