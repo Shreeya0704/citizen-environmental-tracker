@@ -5,6 +5,7 @@ http:
       entryPoints:
         - web
       middlewares:
+        - submission-auth
         - submission-strip
         - submission-rl
       service: submission
@@ -17,6 +18,10 @@ http:
       service: front
 
   middlewares:
+    submission-auth:
+      basicAuth:
+        users:
+          - "apiuser:$2y$05$y8t1dZiK1lI5zgYC/i4Q0.DlKVkdM62dIXWJtdGb4ro6VqQT2tUK6"
     submission-strip:
       stripPrefix:
         prefixes:

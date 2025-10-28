@@ -8,7 +8,7 @@ services:
       dockerfile: Dockerfile
     env_file: .env
     environment:
-      S3_ENDPOINT: http://cstr_minio:9000
+      S3_ENDPOINT: http://minio:9000
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@cstr_rabbitmq:5672/
       INTERVAL_SECONDS: 300
     depends_on:
@@ -24,7 +24,7 @@ services:
       context: ./services/submission-api
     env_file: .env
     environment:
-      S3_ENDPOINT: http://cstr_minio:9000
+      S3_ENDPOINT: http://minio:9000
       INGEST_PREFIX: ${INGEST_PREFIX}
       DATABASE_URL: ${DATABASE_URL}
     depends_on:
@@ -52,7 +52,7 @@ services:
       context: ./services/validation-worker
     env_file: .env
     environment:
-      S3_ENDPOINT: http://cstr_minio:9000
+      S3_ENDPOINT: http://minio:9000
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@cstr_rabbitmq:5672/
       DATABASE_URL: ${DATABASE_URL}
       INGEST_QUEUE: ${INGEST_QUEUE:-ingestion_raw}
