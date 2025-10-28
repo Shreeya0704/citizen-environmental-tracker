@@ -11,9 +11,8 @@
 <body>
   <header>
     <h1>Citizen Science Tracker</h1>
-    <p class="sub">Recent ingestions & normalized measurements</p>
+    <p class="sub">Recent ingestions, normalized measurements & biodiversity observations</p>
   </header>
-
   <main>
     <section>
       <h2>Recent Ingestions</h2>
@@ -22,13 +21,30 @@
     </section>
 
     <section>
-      <h2>Parameter Counts (last 50 rows)</h2>
+      <h2>Parameter Counts (last 7 days)</h2>
       <canvas id="paramChart"></canvas>
     </section>
-  </main>
 
+    <section>
+      <h2>Recent Observations (iNaturalist)</h2>
+      <div class="filters">
+        <label>Days:
+          <select id="obsDays">
+            <option value="7" selected>7</option>
+            <option value="14">14</option>
+            <option value="30">30</option>
+          </select>
+        </label>
+        <label>Country (ISO name):
+          <input id="obsCountry" placeholder="e.g., India">
+        </label>
+        <button id="obsRefresh">Load</button>
+      </div>
+      <ul id="observations"></ul>
+    </section>
+  </main>
   <footer>
-    <small>Served via Traefik → Nginx · API via /api/*</small>
+    <small>Gateway: Traefik (/ → frontend, /api/* → submission-api)</small>
   </footer>
 </body>
 </html>

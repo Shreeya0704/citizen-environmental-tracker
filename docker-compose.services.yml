@@ -8,8 +8,8 @@ services:
       dockerfile: Dockerfile
     env_file: .env
     environment:
-      S3_ENDPOINT: http://minio:9000
-      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672/
+      S3_ENDPOINT: http://cstr_minio:9000
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@cstr_rabbitmq:5672/
       INTERVAL_SECONDS: 300
     depends_on:
       - minio
@@ -24,7 +24,7 @@ services:
       context: ./services/submission-api
     env_file: .env
     environment:
-      S3_ENDPOINT: http://minio:9000
+      S3_ENDPOINT: http://cstr_minio:9000
       INGEST_PREFIX: ${INGEST_PREFIX}
       DATABASE_URL: ${DATABASE_URL}
     depends_on:
@@ -43,17 +43,17 @@ services:
       - "traefik.http.middlewares.submission-strip.stripprefix.prefixes=/api"
       - "traefik.http.middlewares.submission-rl.ratelimit.average=5"
       - "traefik.http.middlewares.submission-rl.ratelimit.burst=10"
-      - "traefik.http.routers.submission.middlewares=submission-strip@docker,submission-rl@docker"
+      - "traefik.http.middlewares.submission-auth.basicauth.users=${TRAEFIK_BASIC_AUTH_USERS}"
+      - "traefik.http.routers.submission.middlewares=submission-auth@docker,submission-strip@docker,submission-rl@docker"
 
   validation-worker:
     container_name: cstr_validation_worker
     build:
       context: ./services/validation-worker
-      dockerfile: Dockerfile
     env_file: .env
     environment:
-      S3_ENDPOINT: http://minio:9000
-      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672/
+      S3_ENDPOINT: http://cstr_minio:9000
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@cstr_rabbitmq:5672/
       DATABASE_URL: ${DATABASE_URL}
       INGEST_QUEUE: ${INGEST_QUEUE:-ingestion_raw}
     depends_on:

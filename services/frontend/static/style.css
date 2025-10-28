@@ -1,12 +1,16 @@
 * { box-sizing: border-box; }
-body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; color: #111; }
+body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; color: #111; background:#fafafa;}
 header { padding: 16px 20px; background: #f5f7fb; border-bottom: 1px solid #e5e7eb; }
 h1 { margin: 0 0 6px 0; font-size: 1.4rem; }
 .sub { color: #444; margin: 0; }
-main { display: grid; gap: 24px; padding: 20px; max-width: 1000px; margin: 0 auto; }
+main { display: grid; gap: 24px; padding: 20px; max-width: 1100px; margin: 0 auto; }
 section { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; }
 button { padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; cursor: pointer; }
 button:hover { background: #f8fafc; }
-#ingestions { list-style: none; padding: 0; margin: 8px 0 0 0; }
-#ingestions li { padding: 6px 0; border-bottom: 1px dashed #eee; }
-footer { text-align: center; padding: 12px; color: #666; border-top: 1px solid #e5e7eb; }
+.filters { display:flex; gap:12px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
+input, select { padding:6px 8px; border:1px solid #cbd5e1; border-radius:8px; }
+#ingestions, #observations { list-style: none; padding: 0; margin: 8px 0 0 0; }
+#ingestions li, #observations li { padding: 8px 0; border-bottom: 1px dashed #eee; display:flex; gap:10px; align-items:center; }
+.badge { font-size: 12px; padding: 2px 6px; border-radius: 999px; background:#eef2ff; border:1px solid #c7d2fe; }
+.meta { color:#475569; font-size: 12px; }
+footer { text-align: center; padding: 12px; color: #666; border-top: 1px solid #e5e7eb; background:#fff; }
