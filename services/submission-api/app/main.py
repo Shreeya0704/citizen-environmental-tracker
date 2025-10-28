@@ -19,7 +19,6 @@ REQ_LATENCY = Histogram(
     "submission_api_request_seconds", "Request latency seconds", ["endpoint", "method"]
 )
 
-# --- MinIO config ---
 BUCKET = os.getenv("S3_BUCKET", "ingestion")
 PREFIX = os.getenv("INGEST_PREFIX", "openaq/raw/")
 ENDPOINT = os.getenv("S3_ENDPOINT", "http://minio:9000")
@@ -33,7 +32,6 @@ def _s3() -> Minio:
     return Minio(host, access_key=ACCESS_KEY, secret_key=SECRET_KEY, secure=secure)
 
 
-# --- DB config ---
 DB_URL = os.getenv(
     "DATABASE_URL",
     "postgresql://cstracker:cstracker@cstr_postgres:5432/cstracker",
@@ -44,7 +42,7 @@ def _db():
     return psycopg2.connect(DB_URL)
 
 
-app = FastAPI(title="Submission API", version="0.3.0")
+app = FastAPI(title="Submission API", version="0.4.0")
 
 
 @app.middleware("http")
@@ -175,3 +173,44 @@ def measurements(
         raise
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(500, f"query_failed: {exc}") from exc
+
+
+@app.get("/stats/top-cities")
+def stats_top_cities(
+    parameter: str = Query(..., description="e.g., pm25"),
+    limit: int = Query(10, ge=1, le=100),
+):
+    sql = """
+      SELECT city, country, parameter, unit, value, time_utc
+      FROM mv_city_param_latest
+      WHERE parameter = %s AND value IS NOT NULL
+      ORDER BY value DESC NULLS LAST
+      LIMIT %s
+    """
+    try:
+        with _db() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(sql, [parameter, limit])
+            rows = cur.fetchall()
+            return {"items": rows, "count": len(rows)}
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"stats_top_cities_failed: {exc}") from exc
+
+
+@app.get("/stats/param-trend")
+def stats_param_trend(
+    parameter: str = Query(..., description="e.g., pm25"),
+    days: int = Query(7, ge=1, le=90),
+):
+    sql = """
+      SELECT day, parameter, count
+      FROM mv_param_daily_counts
+      WHERE parameter = %s AND day >= (now() AT TIME ZONE 'UTC') - (INTERVAL '1 day' * %s)
+      ORDER BY day ASC
+    """
+    try:
+        with _db() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(sql, [parameter, days])
+            rows = cur.fetchall()
+            return {"items": rows, "count": len(rows)}
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(500, f"stats_param_trend_failed: {exc}") from exc
