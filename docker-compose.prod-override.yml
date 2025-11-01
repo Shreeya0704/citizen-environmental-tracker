@@ -1,0 +1,23 @@
+services:
+  postgres:
+    container_name: cstr-prod_postgres
+  minio:
+    container_name: cstr-prod_minio
+  rabbitmq:
+    container_name: cstr-prod_rabbitmq
+  traefik:
+    container_name: cstr-prod_traefik
+  prometheus:
+    container_name: cstr-prod_prometheus
+  alertmanager:
+    container_name: cstr-prod_alertmanager
+  grafana:
+    container_name: cstr-prod_grafana
+  data-ingestor:
+    container_name: cstr-prod_data_ingestor
+  submission-api:
+    container_name: cstr-prod_submission_api
+  frontend:
+    container_name: cstr-prod_frontend
+  db-maint:
+    container_name: cstr-prod_db_maint
