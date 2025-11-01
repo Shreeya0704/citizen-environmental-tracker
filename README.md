@@ -4,7 +4,7 @@ The Citizen Environmental Tracker is a platform for collecting, storing, and exp
 
 This project is built with a microservices architecture and is fully containerized with Docker, making it easy to deploy and scale.
 
-![Project Architecture Diagram](https://i.imgur.com/your-architecture-diagram.png) 
+![Project Architecture Diagram](images/architecture.png) 
 *Note: You can create and link to an architecture diagram here.*
 
 ## Features
